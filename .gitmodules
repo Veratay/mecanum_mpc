@@ -1,0 +1,6 @@
+[submodule "deps/fatrop"]
+	path = deps/fatrop
+	url = https://github.com/meco-group/fatrop
+[submodule "deps/blasfeo"]
+	path = deps/blasfeo
+	url = https://github.com/giaf/blasfeo
