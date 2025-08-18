@@ -3,9 +3,9 @@ set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
 # cross compilers
-set(CMAKE_C_COMPILER   aarch64-linux-gnu-gcc)
+set(CMAKE_C_COMPILER /usr/bin/aarch64-linux-gnu-gcc-12)
 set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
-set(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++)
+set(CMAKE_CXX_COMPILER /usr/bin/aarch64-linux-gnu-g++-12)
 
 # avoid finding host includes/libraries
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)

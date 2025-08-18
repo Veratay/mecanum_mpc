@@ -33,7 +33,10 @@ ExternalProject_Add(
         -DTARGET=${BLASFEO_TARGET} 
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/blasfeo-install
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DBUILD_SHARED_LIBS=OFF
+        -DCMAKE_C_FLAGS=-ffunction-sections
+        -DCMAKE_CXX_FLAGS=-ffunction-sections
 )
 
 ExternalProject_Add(
@@ -46,6 +49,9 @@ ExternalProject_Add(
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/blasfeo-install
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/fatrop-install
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DCMAKE_C_FLAGS=-ffunction-sections
+        -DCMAKE_CXX_FLAGS=-ffunction-sections
 )
 # Your app source files, including fatrop usage and casadi_codegen wrappers
 set(SRC
@@ -64,44 +70,37 @@ target_include_directories(solver PRIVATE
 )
 
 target_link_libraries(solver PRIVATE
-    ${CMAKE_BINARY_DIR}/blasfeo-install/lib/libblasfeo.a
-    ${CMAKE_BINARY_DIR}/fatrop-install/lib/libfatrop.a
+ "-Wl,-whole-archive" 
+        ${CMAKE_BINARY_DIR}/blasfeo-install/lib/libblasfeo.a
+        ${CMAKE_BINARY_DIR}/fatrop-install/lib/libfatrop.a
+    "-Wl,-no-whole-archive"
+)
+
+# Enable linker to remove unused functions
+set_target_properties(solver PROPERTIES
+    LINK_FLAGS "-Wl,--gc-sections"
 )
 
 set(VENV_PYTHON "${CMAKE_SOURCE_DIR}/venv/bin/python")
 set(CODEGEN_DIR "${CMAKE_SOURCE_DIR}/codegen")
-set(STAMP_FILE "${CMAKE_BINARY_DIR}/codegen.stamp")
-
-# Get timestamps
-file(TIMESTAMP "${MY_SCRIPT}" SCRIPT_TS)
-if(EXISTS ${STAMP_FILE})
-    file(TIMESTAMP "${STAMP_FILE}" STAMP_TS)
-else()
-    set(STAMP_TS 0)
-endif()
 
 # Determine if codegen should run
-if(NOT EXISTS ${STAMP_FILE} OR SCRIPT_TS GREATER STAMP_TS)
-    message(STATUS "Running codegen")
-    # Delete all files inside codegen
-    file(GLOB_RECURSE CODEGEN_FILES "${CODEGEN_DIR}/*")
-    if(CODEGEN_FILES)
-        file(REMOVE ${CODEGEN_FILES})
-    endif()
+message(STATUS "Running codegen")
+# Delete all files inside codegen
+file(GLOB_RECURSE CODEGEN_FILES "${CODEGEN_DIR}/*")
+if(CODEGEN_FILES)
+    file(REMOVE ${CODEGEN_FILES})
+endif()
 
-    # Run the Python script
-    execute_process(
-        COMMAND ${VENV_PYTHON} "${CMAKE_SOURCE_DIR}/src/py/gen_mpc.py" "${CODEGEN_DIR}/"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        RESULT_VARIABLE result
-        OUTPUT_VARIABLE output
-        ERROR_VARIABLE error
-    )
+# Run the Python script
+execute_process(
+    COMMAND ${VENV_PYTHON} "${CMAKE_SOURCE_DIR}/src/py/gen_mpc.py" "${CODEGEN_DIR}/"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE output
+    ERROR_VARIABLE error
+)
 
-    if(NOT result EQUAL 0)
-        message(FATAL_ERROR "Python codegen script failed: ${error}")
-    endif()
-
-    # Update stamp file
-    file(WRITE "${STAMP_FILE}" "Generated at ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+if(NOT result EQUAL 0)
+    message(FATAL_ERROR "Python codegen script failed: ${error}")
 endif()

@@ -22,7 +22,7 @@ public:
     Solver();
     ~Solver();
 
-    int solve(casadi_real target[], casadi_real x0[], casadi_real u_last[], casadi_real p[], casadi_real x_guess[], casadi_real u_guess[], casadi_real x_out[], casadi_real u_out[]);
+    int solve(casadi_real target[], casadi_real x0[], casadi_real u_last[], casadi_real p[], casadi_real x_out[], casadi_real u_out[]);
 };
 
 #endif // SOLVER_H

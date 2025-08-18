@@ -81,8 +81,6 @@ int Solver::solve(
         casadi_real x0[],
         casadi_real u_last[],
         casadi_real p[],
-        casadi_real x_guess[],
-        casadi_real u_guess[],
         casadi_real x_out[],
         casadi_real u_out[]
         ) {
@@ -90,8 +88,6 @@ int Solver::solve(
     this->arg[1] = x0;
     this->arg[2] = u_last;
     this->arg[3] = p;
-    this->arg[4] = x_guess;
-    this->arg[5] = u_guess;
 
     this->res[0] = x_out;
     this->res[1] = u_out;
@@ -99,4 +95,24 @@ int Solver::solve(
     f(this->arg.get(), this->res.get(), this->iw.get(), this->w.get(), this->mem);
 
     return 0;
+}
+
+extern "C" {
+    typedef void* SolverHandle;
+
+    SolverHandle solver_create() {
+        return new Solver();
+    }
+
+    void solver_destroy(SolverHandle handle) {
+        delete static_cast<Solver*>(handle);
+    }
+
+    // Solve function
+    int solver_solve(SolverHandle handle,
+                     double target[], double x0[], double u_last[],
+                     double p[], double x_out[], double u_out[]) {
+        Solver* solver = static_cast<Solver*>(handle);
+        return solver->solve(target, x0, u_last, p, x_out, u_out);
+    }
 }

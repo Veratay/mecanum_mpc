@@ -180,8 +180,6 @@ class Optimizer:
             self.x0, 
             self.u_last, 
             self.p,
-            x,
-            u
             ],[x,u])
         # ipopt with lbfgs and a large memory size
         #opti.solver("ipopt", {"ipopt.hessian_approximation": "limited-memory", "ipopt.tol": 1e-6})
