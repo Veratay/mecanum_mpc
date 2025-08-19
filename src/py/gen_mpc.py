@@ -83,7 +83,7 @@ class Waypoint:
 class Optimizer:
     nx = 6
     nu = 4
-    N = 5
+    N = 7
     K = N + 1
     dt = 0.04
 

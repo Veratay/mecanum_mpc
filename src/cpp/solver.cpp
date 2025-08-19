@@ -1,4 +1,4 @@
-#include "solver.h"
+#include "solver.hpp"
 #include <cassert>
 #include <chrono>
 #include <iostream>
@@ -72,7 +72,7 @@ Solver::Solver() {
 }
 
 Solver::~Solver() {
-    f_release(this->mem);
+    if(this->mem) f_release(this->mem);
     f_decref();
 }
 

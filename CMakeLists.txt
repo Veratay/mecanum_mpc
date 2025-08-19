@@ -6,6 +6,25 @@ project(mpcc LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Enable with: cmake -DENABLE_ASAN=ON ..
+option(ENABLE_ASAN "Build with AddressSanitizer" OFF)
+
+if (ENABLE_ASAN)
+    message(STATUS "AddressSanitizer enabled")
+
+    # GCC/Clang flags
+    set(ASAN_FLAGS 
+        "-fsanitize=address"
+        "-fno-omit-frame-pointer"
+    )
+
+    # Apply to all targets (or restrict to specific ones)
+    add_compile_options(${ASAN_FLAGS})
+    add_link_options(${ASAN_FLAGS})
+endif()
+
 # option(ANDROID_BUILD "Build for Android with NDK" OFF)
 
 # --------------------------------------------------
@@ -53,14 +72,17 @@ ExternalProject_Add(
         -DCMAKE_C_FLAGS=-ffunction-sections
         -DCMAKE_CXX_FLAGS=-ffunction-sections
 )
+
 # Your app source files, including fatrop usage and casadi_codegen wrappers
 set(SRC
     src/cpp/solver.cpp
     #src/solver_jni.cpp
     codegen/f.c  # generated code as part of build
+    src/cpp/solver_daemon.cpp
 )
 
-add_library(solver SHARED ${SRC})
+#add_library(solver SHARED ${SRC})
+add_executable(solver ${SRC})
 
 target_include_directories(solver PRIVATE
     ${CMAKE_SOURCE_DIR}/codegen
