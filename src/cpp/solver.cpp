@@ -16,45 +16,6 @@ Solver::Solver() {
     if (f_work(&sz_arg, &sz_res, &sz_iw, &sz_w))
         throw std::runtime_error("Failed to get sizes of work vectors");
 
-    // printf("Work vector sizes:\n");
-    // printf("sz_arg = %lld, sz_res = %lld, sz_iw = %lld, sz_w = %lld\n\n",
-    //        sz_arg, sz_res, sz_iw, sz_w);
-    //
-    // /* Print the sparsities of the inputs and outputs */
-    // casadi_int i;
-    // for(i=0; i<n_in + n_out; ++i){
-    //   // Retrieve the sparsity pattern - CasADi uses column compressed storage (CCS)
-    //   const casadi_int *sp_i;
-    //   if (i<n_in) {
-    //     printf("Input %lld\n", i);
-    //     sp_i = f_sparsity_in(i);
-    //   } else {
-    //     printf("Output %lld\n", i-n_in);
-    //     sp_i = f_sparsity_out(i-n_in);
-    //   }
-    //
-    //   assert(sp_i!=0);
-    //
-    //   casadi_int nrow = *sp_i++; /* Number of rows */
-    //   casadi_int ncol = *sp_i++; /* Number of columns */
-    //   const casadi_int *colind = sp_i; /* Column offsets */
-    //   const casadi_int *row = sp_i + ncol+1; /* Row nonzero */
-    //   casadi_int nnz = sp_i[ncol]; /* Number of nonzeros */
-    //
-    //   /* Print the pattern */
-    //   printf("  Dimension: %lld-by-%lld (%lld nonzeros)\n", nrow, ncol, nnz);
-    //   printf("  Nonzeros: {");
-    //   casadi_int rr,cc,el;
-    //   for(cc=0; cc<ncol; ++cc){                    /* loop over columns */
-    //     for(el=colind[cc]; el<colind[cc+1]; ++el){ /* loop over the nonzeros entries of the column */
-    //       if(el!=0) printf(", ");                  /* Separate the entries */
-    //       rr = row[el];                            /* Get the row */
-    //       printf("{%lld,%lld}",rr,cc);                 /* Print the nonzero */
-    //     }
-    //   }
-    //   printf("}\n\n");
-    // }
-
     /* Allocate input/output buffers and work vectors*/
     this->arg = std::make_unique<const double *[]>(sz_arg);
     this->res = std::make_unique<double *[]>(sz_res);

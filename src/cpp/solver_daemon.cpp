@@ -9,11 +9,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 
 
 #include <sys/resource.h>
 
 #include "mpc_proto.hpp"
+#include "rockit_interface/rockit_solver.hpp"
 #include "solver.hpp"
 
 struct SolverCtx {
@@ -61,6 +63,31 @@ long get_rss_kb() {
 }
 
 int main(int argc, char** argv) {
+    // std::printf("Attempting rockit solver.");
+    //
+    // std::ifstream rfile;
+    // rfile.open("./codegen/casadi_codegen.json");
+    // std::printf("loaded file\n");
+    //
+    // RockitSolver rockit_solver("./build/libcodegen.so",rfile);
+    //
+    // std::printf("initialized solver\n");
+    //
+    // double r_target[] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 100.0};
+    // double r_x0[] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    // double r_p[] = {
+    //     96.664389,
+    //     7.8,
+    //     0.27,
+    //     0.27,
+    //     0.1016,
+    //     68.0,
+    //     6.0
+    // };
+    // double r_u_last[] = {0.0, 0.0, 0.0, 0.0};
+    //
+    // rockit_solver.solve(r_target, r_x0, r_u_last, r_p,  0, 0);
+
     if (argc != 2) {
         std::fprintf(stderr, "Usage: %s <listen_port>\n", argv[0]);
         return 1;
@@ -91,12 +118,13 @@ int main(int argc, char** argv) {
     while (true) {
         sockaddr_in client{};
         socklen_t clen = sizeof(client);
-        // ssize_t n = recvfrom(sockfd, &req, sizeof(req), 0, (sockaddr*)&client, &clen);
-        // if (n < 0) { perror("recvfrom"); continue; }
 
         ssize_t n;
         ssize_t tmp_n;
         bool got_packet = false;
+
+        // fetch latest state update to solve
+        // if >1 state update has been sent since the last solve started, all are dropped except the last
         do {
             tmp_n = recvfrom(sockfd, &req, sizeof(req), MSG_DONTWAIT, (sockaddr*)&client, &clen);
             if (tmp_n > 0) {
@@ -119,7 +147,7 @@ int main(int argc, char** argv) {
         }
 
         if (!header_ok(req.h, TYPE_REQ)) {
-            std::fprintf(stderr, "[solver] bad header\n", n);
+            std::fprintf(stderr, "[solver] bad header\n");
             continue;
         }
 
@@ -127,11 +155,10 @@ int main(int argc, char** argv) {
         double x_out[N_X*(N+1)]{};
         double u_out[N_U*N]{};
 
-
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
         long mem_before = get_rss_kb();
-        // Run solve (zero-copy pointers into req)
+
         solver.solve(
             (double*)req.target,
             (double*)req.x0,
@@ -143,7 +170,6 @@ int main(int argc, char** argv) {
         long mem_after = get_rss_kb();
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
 
         std::cout << "Solved in " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "µs" << std::endl;
         std::cout << "RSS before: " << mem_before << " kB, after: " << mem_after << " kB\n";

@@ -4,6 +4,8 @@
 #include "f.h"
 #include <memory>
 
+#define casadi_real double
+
 class Solver {
 private:
     casadi_int sz_arg;

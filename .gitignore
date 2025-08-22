@@ -1,5 +1,5 @@
 build/*
-venv/
+.venv/
 codegen/
 .cache/
 compile_commands.json

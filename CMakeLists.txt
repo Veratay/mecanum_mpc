@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 # Enable with: cmake -DENABLE_ASAN=ON ..
 option(ENABLE_ASAN "Build with AddressSanitizer" OFF)
 
@@ -59,43 +61,53 @@ ExternalProject_Add(
 )
 
 ExternalProject_Add(
-    fatrop
+    fatrop-external
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/fatrop
+    DEPENDS blasfeo
+    INSTALL_DIR ${CMAKE_BINARY_DIR}/fatrop-install
     CMAKE_ARGS 
         -DBUILD_TESTS=OFF
         -DBUILD_EXAMPLES=OFF
         -DBUILD_WITH_LEGACY=ON 
+        -DENABLE_MULTITHREADING=OFF
+        -DMARCH_NATIVE=OFF 
+        -DBUILD_EXECUTABLES=OFF
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
         -DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/blasfeo-install
-        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/fatrop-install
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DCMAKE_C_FLAGS=-ffunction-sections
         -DCMAKE_CXX_FLAGS=-ffunction-sections
 )
 
-# Your app source files, including fatrop usage and casadi_codegen wrappers
-set(SRC
-    src/cpp/solver.cpp
-    #src/solver_jni.cpp
-    codegen/f.c  # generated code as part of build
-    src/cpp/solver_daemon.cpp
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fatrop-install/include)
+add_library(fatrop SHARED IMPORTED)
+set_target_properties(fatrop PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/fatrop-install/lib/libfatrop.so
+    INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/fatrop-install/include
 )
 
-#add_library(solver SHARED ${SRC})
+
+add_dependencies(fatrop fatrop-external)
+
+file(GLOB SRC
+    codegen/*.c
+    src/cpp/*.cpp
+    src/cpp/rockit_interface/*.cpp
+)
+
 add_executable(solver ${SRC})
 
 target_include_directories(solver PRIVATE
     ${CMAKE_SOURCE_DIR}/codegen
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/include/rockit_interface
     ${CMAKE_BINARY_DIR}/blasfeo-install/include
-    ${CMAKE_BINARY_DIR}/fatrop-install/include
 )
 
 target_link_libraries(solver PRIVATE
- "-Wl,-whole-archive" 
-        ${CMAKE_BINARY_DIR}/blasfeo-install/lib/libblasfeo.a
-        ${CMAKE_BINARY_DIR}/fatrop-install/lib/libfatrop.a
-    "-Wl,-no-whole-archive"
+    ${CMAKE_BINARY_DIR}/blasfeo-install/lib/libblasfeo.a
+    fatrop
 )
 
 # Enable linker to remove unused functions
@@ -103,20 +115,20 @@ set_target_properties(solver PROPERTIES
     LINK_FLAGS "-Wl,--gc-sections"
 )
 
-set(VENV_PYTHON "${CMAKE_SOURCE_DIR}/venv/bin/python")
+set(VENV_PYTHON "${CMAKE_SOURCE_DIR}/.venv/bin/python")
 set(CODEGEN_DIR "${CMAKE_SOURCE_DIR}/codegen")
 
-# Determine if codegen should run
 message(STATUS "Running codegen")
-# Delete all files inside codegen
+
 file(GLOB_RECURSE CODEGEN_FILES "${CODEGEN_DIR}/*")
 if(CODEGEN_FILES)
     file(REMOVE ${CODEGEN_FILES})
 endif()
 
-# Run the Python script
+# Run Python scripts
 execute_process(
-    COMMAND ${VENV_PYTHON} "${CMAKE_SOURCE_DIR}/src/py/gen_mpc.py" "${CODEGEN_DIR}/"
+    COMMAND ${VENV_PYTHON} "${CMAKE_SOURCE_DIR}/src/py/gen_mpc_rockit.py" "${CODEGEN_DIR}/" || true
+    COMMAND ${VENV_PYTHON} "${CMAKE_SOURCE_DIR}/src/py/gen_mpc.py" "${CODEGEN_DIR}/" || true
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     RESULT_VARIABLE result
     OUTPUT_VARIABLE output
@@ -124,5 +136,11 @@ execute_process(
 )
 
 if(NOT result EQUAL 0)
-    message(FATAL_ERROR "Python codegen script failed: ${error}")
+    message(WARNING "Python codegen script failed: ${error}")
 endif()
+
+add_library(codegen SHARED 
+    ${CMAKE_SOURCE_DIR}/codegen/casadi_codegen.c
+)
+
+target_include_directories(codegen PUBLIC ${CMAKE_SOURCE_DIR}/codegen)
