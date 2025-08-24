@@ -15,7 +15,6 @@
 #include <sys/resource.h>
 
 #include "mpc_proto.hpp"
-#include "rockit_interface/rockit_solver.hpp"
 #include "solver.hpp"
 
 struct SolverCtx {

@@ -8,8 +8,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_BUILD_TYPE Debug)
-
 # Enable with: cmake -DENABLE_ASAN=ON ..
 option(ENABLE_ASAN "Build with AddressSanitizer" OFF)
 
@@ -56,6 +54,7 @@ ExternalProject_Add(
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/blasfeo-install
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DBUILD_SHARED_LIBS=OFF
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DCMAKE_C_FLAGS=-ffunction-sections
         -DCMAKE_CXX_FLAGS=-ffunction-sections
 )
@@ -72,10 +71,13 @@ ExternalProject_Add(
         -DENABLE_MULTITHREADING=OFF
         -DMARCH_NATIVE=OFF 
         -DBUILD_EXECUTABLES=OFF
+        -DBLASFEO_INSTALL_DIR=${CMAKE_BINARY_DIR}/blasfeo-install
+        -DBUILD_WITH_BLASFEO=OFF
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
         -DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/blasfeo-install
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DCMAKE_C_FLAGS=-ffunction-sections
         -DCMAKE_CXX_FLAGS=-ffunction-sections
 )
@@ -93,7 +95,6 @@ add_dependencies(fatrop fatrop-external)
 file(GLOB SRC
     codegen/*.c
     src/cpp/*.cpp
-    src/cpp/rockit_interface/*.cpp
 )
 
 add_executable(solver ${SRC})
@@ -101,7 +102,6 @@ add_executable(solver ${SRC})
 target_include_directories(solver PRIVATE
     ${CMAKE_SOURCE_DIR}/codegen
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/include/rockit_interface
     ${CMAKE_BINARY_DIR}/blasfeo-install/include
 )
 
